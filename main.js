@@ -115,8 +115,8 @@ class DigitalClock extends HTMLElement {
         const dateMap = partsToMap(dateParts);
         const tenths = String(Math.floor(now.getMilliseconds() / 100));
         const timeText = this.showTenths
-            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${tenths}`
-            : `${timeMap.hour}:${timeMap.minute}:${timeMap.second}`;
+            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${tenths}H`
+            : `${timeMap.hour}:${timeMap.minute}:${timeMap.second}H`;
         const dateText = `${dateMap.year}년 ${dateMap.month}월 ${dateMap.day}일 (${dateMap.weekday})`;
 
         this.shadowRoot.querySelector('.digital-clock').textContent = timeText;
