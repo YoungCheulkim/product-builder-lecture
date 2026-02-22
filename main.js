@@ -176,17 +176,17 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     function formatOffset(offset) {
-        if (offset === 0) return '±0';
-        return `${offset > 0 ? '+' : ''}${offset}`;
+        if (offset === 0) return '±0H';
+        return `${offset > 0 ? '+' : ''}${offset}H`;
     }
 
     function displayCityList() {
         modalCityList.innerHTML = '';
         standardTimeCities.forEach(({ timezone, city, offset }) => {
             const button = document.createElement('button');
-            button.textContent = `${city} (${formatOffset(offset)}) (시간H)`;
+            button.textContent = `${city} (${formatOffset(offset)})`;
             button.addEventListener('click', () => {
-                createClock(timezone, `${city} (${formatOffset(offset)}) (시간H)`);
+                createClock(timezone, `${city} (${formatOffset(offset)})`);
                 cityModal.style.display = 'none';
             });
             modalCityList.appendChild(button);
