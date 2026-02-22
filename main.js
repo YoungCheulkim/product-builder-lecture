@@ -13,8 +13,8 @@ class DigitalClock extends HTMLElement {
       <style>
         .clock-container {
             position: relative;
-            width: 350px; /* Increased width for date */
-            height: 200px; /* Increased height for date */
+            width: 350px;
+            height: 200px;
             margin: 20px;
             display: flex;
             flex-direction: column;
@@ -53,8 +53,24 @@ class DigitalClock extends HTMLElement {
             font-size: 3em;
             font-family: 'monospace';
         }
+
+        .delete-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .delete-button:hover {
+            color: #333;
+        }
       </style>
       <div class="clock-container">
+          <button class="delete-button">&times;</button>
           <div class="city-label">${city}</div>
           <div class="date-display"></div>
           <div class="digital-clock"></div>
@@ -65,6 +81,10 @@ class DigitalClock extends HTMLElement {
     this.digitalClock = this.shadowRoot.querySelector('.digital-clock');
     this.dateDisplay = this.shadowRoot.querySelector('.date-display');
     this.clockContainer = this.shadowRoot.querySelector('.clock-container');
+
+    this.shadowRoot.querySelector('.delete-button').addEventListener('click', () => {
+        this.remove();
+    });
 
     this.updateClock(timezone);
     this.interval = setInterval(() => this.updateClock(timezone), 1000);
@@ -91,7 +111,6 @@ class DigitalClock extends HTMLElement {
     this.digitalClock.textContent = `${digitalHours}:${digitalMinutes}:${digitalSeconds}`;
     this.dateDisplay.textContent = `${year}년 ${month}월 ${date}일 (${day})`;
 
-    // Day/Night Mode
     if (hours >= 6 && hours < 18) {
         this.clockContainer.classList.remove('dark-mode');
         this.clockContainer.classList.add('light-mode');
@@ -106,49 +125,58 @@ customElements.define('digital-clock', DigitalClock);
 
 const clocksContainer = document.getElementById('clocks-container');
 const addWorldClockButton = document.getElementById('add-world-clock');
-const cityListContainer = document.getElementById('city-list-container');
+const cityModal = document.getElementById('city-modal');
+const modalCityList = document.getElementById('modal-city-list');
+const closeButton = document.querySelector('.close-button');
 let timezones = [];
 
 addWorldClockButton.addEventListener('click', async () => {
-  if (cityListContainer.style.display === 'none') {
+  if (timezones.length === 0) {
     try {
-        if (timezones.length === 0) {
-            const response = await fetch('https://worldtimeapi.org/api/timezone');
-            timezones = await response.json();
-        }
-        displayRegions();
-        cityListContainer.style.display = 'block';
+      const response = await fetch('https://worldtimeapi.org/api/timezone');
+      timezones = await response.json();
     } catch (error) {
       console.error('Error fetching timezones:', error);
+      return;
     }
-  } else {
-    cityListContainer.style.display = 'none';
+  }
+  displayRegions();
+  cityModal.style.display = 'block';
+});
+
+closeButton.addEventListener('click', () => {
+  cityModal.style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+  if (event.target == cityModal) {
+    cityModal.style.display = 'none';
   }
 });
 
 function displayRegions() {
     const regions = [...new Set(timezones.map(tz => tz.split('/')[0]))];
-    cityListContainer.innerHTML = '';
+    modalCityList.innerHTML = '';
     regions.forEach(region => {
         const button = document.createElement('button');
         button.textContent = region;
         button.addEventListener('click', () => displayCities(region));
-        cityListContainer.appendChild(button);
+        modalCityList.appendChild(button);
     });
 }
 
 function displayCities(region) {
     const cities = timezones.filter(tz => tz.startsWith(region + '/'));
-    cityListContainer.innerHTML = '';
+    modalCityList.innerHTML = '';
     cities.forEach(timezone => {
         const city = timezone.split('/').slice(1).join('/').replace(/_/g, ' ');
         const button = document.createElement('button');
         button.textContent = city;
         button.addEventListener('click', () => {
           createClock(timezone, city);
-          cityListContainer.style.display = 'none';
+          cityModal.style.display = 'none';
         });
-        cityListContainer.appendChild(button);
+        modalCityList.appendChild(button);
     });
 }
 
