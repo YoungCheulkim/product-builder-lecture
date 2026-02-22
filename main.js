@@ -19,6 +19,9 @@ class DigitalClock extends HTMLElement {
     const timezone = this.getAttribute('timezone');
     const city = this.getAttribute('city');
     this.timezone = timezone;
+    if (typeof window.__showTenths === 'boolean') {
+        this.showTenths = window.__showTenths;
+    }
 
     const template = document.createElement('template');
     template.innerHTML = `
@@ -199,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clock.setAttribute('timezone', timezone);
         clock.setAttribute('city', city);
         clocksContainer.appendChild(clock);
+        window.dispatchEvent(new CustomEvent('tenths-toggle', { detail: { showTenths: showTenthsCheckbox.checked } }));
     }
 
     addWorldClockButton.addEventListener('click', () => {
@@ -217,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const broadcastTenthsSetting = (showTenths) => {
+        window.__showTenths = showTenths;
         window.dispatchEvent(new CustomEvent('tenths-toggle', { detail: { showTenths } }));
     };
 
