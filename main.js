@@ -2,11 +2,17 @@ class DigitalClock extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    this.handleTick = (event) => {
+        if (event.detail && event.detail.now) {
+            this.updateClock(event.detail.now);
+        }
+    };
   }
 
   connectedCallback() {
     const timezone = this.getAttribute('timezone');
     const city = this.getAttribute('city');
+    this.timezone = timezone;
 
     const template = document.createElement('template');
     template.innerHTML = `
@@ -58,28 +64,54 @@ class DigitalClock extends HTMLElement {
         this.remove();
     });
 
-    this.updateClock(timezone);
-    this.interval = setInterval(() => this.updateClock(timezone), 1000);
+    try {
+        this.timeFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+        this.dateFormatter = new Intl.DateTimeFormat('ko-KR', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'short',
+        });
+    } catch (error) {
+        console.error(`Invalid timezone: ${timezone}`, error);
+        this.shadowRoot.querySelector('.digital-clock').textContent = 'Invalid Timezone';
+        return;
+    }
+
+    window.addEventListener('clock-tick', this.handleTick);
   }
 
   disconnectedCallback() {
-    clearInterval(this.interval);
+    window.removeEventListener('clock-tick', this.handleTick);
   }
 
-  updateClock(timezone) {
+  updateClock(now) {
     try {
-        const now = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-        const hours = now.getHours();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const date = String(now.getDate()).padStart(2, '0');
-        const day = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
+        const timeParts = this.timeFormatter.formatToParts(now);
+        const dateParts = this.dateFormatter.formatToParts(now);
+        const partsToMap = (parts) => parts.reduce((acc, part) => {
+            acc[part.type] = part.value;
+            return acc;
+        }, {});
+        const timeMap = partsToMap(timeParts);
+        const dateMap = partsToMap(dateParts);
+        const hundredths = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+        const timeText = `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${hundredths}`;
+        const dateText = `${dateMap.year}년 ${dateMap.month}월 ${dateMap.day}일 (${dateMap.weekday})`;
 
-        this.shadowRoot.querySelector('.digital-clock').textContent = now.toTimeString().split(' ')[0];
-        this.shadowRoot.querySelector('.date-display').textContent = `${year}년 ${month}월 ${date}일 (${day})`;
+        this.shadowRoot.querySelector('.digital-clock').textContent = timeText;
+        this.shadowRoot.querySelector('.date-display').textContent = dateText;
 
         const clockContainer = this.shadowRoot.querySelector('.clock-container');
-        if (hours >= 6 && hours < 18) {
+        const hour = parseInt(timeMap.hour, 10);
+        if (hour >= 6 && hour < 18) {
             clockContainer.classList.remove('dark-mode');
             clockContainer.classList.add('light-mode');
         } else {
@@ -87,9 +119,8 @@ class DigitalClock extends HTMLElement {
             clockContainer.classList.add('dark-mode');
         }
     } catch (error) {
-        console.error(`Invalid timezone: ${timezone}`, error);
+        console.error(`Invalid timezone: ${this.timezone}`, error);
         this.shadowRoot.querySelector('.digital-clock').textContent = 'Invalid Timezone';
-        clearInterval(this.interval);
     }
   }
 }
@@ -97,6 +128,7 @@ class DigitalClock extends HTMLElement {
 customElements.define('digital-clock', DigitalClock);
 
 document.addEventListener('DOMContentLoaded', () => {
+    const TICK_INTERVAL_MS = 10;
     const clocksContainer = document.getElementById('clocks-container');
     const addWorldClockButton = document.getElementById('add-world-clock');
     const cityModal = document.getElementById('city-modal');
@@ -172,4 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
             cityModal.style.display = 'none';
         }
     });
+
+    const tick = () => {
+        const now = new Date();
+        window.dispatchEvent(new CustomEvent('clock-tick', { detail: { now } }));
+    };
+    tick();
+    setInterval(tick, TICK_INTERVAL_MS);
 });
