@@ -110,11 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch('https://worldtimeapi.org/api/timezone');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 timezones = await response.json();
+                return true;
             } catch (error) {
                 console.error('Error fetching timezones:', error);
-                modalCityList.innerHTML = '시간대 목록을 불러오는 데 실패했습니다.';
+                return false;
             }
         }
+        return true;
     }
 
     function displayRegions() {
@@ -165,11 +167,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     addWorldClockButton.addEventListener('click', async () => {
-        await fetchTimezones();
-        if (timezones.length > 0) {
+        cityModal.style.display = 'block';
+        modalCityList.innerHTML = '시간대 목록을 불러오는 중...';
+
+        const ok = await fetchTimezones();
+        if (ok && timezones.length > 0) {
             displayRegions();
-            cityModal.style.display = 'block';
+            return;
         }
+
+        modalCityList.innerHTML = '';
+        const message = document.createElement('div');
+        message.textContent = '시간대 목록을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.';
+        const retryButton = document.createElement('button');
+        retryButton.textContent = '다시 시도';
+        retryButton.addEventListener('click', async () => {
+            modalCityList.innerHTML = '시간대 목록을 불러오는 중...';
+            const retryOk = await fetchTimezones();
+            if (retryOk && timezones.length > 0) {
+                displayRegions();
+                return;
+            }
+            modalCityList.innerHTML = '';
+            modalCityList.appendChild(message);
+            modalCityList.appendChild(retryButton);
+        });
+        modalCityList.appendChild(message);
+        modalCityList.appendChild(retryButton);
     });
 
     closeButton.addEventListener('click', () => {
