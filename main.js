@@ -221,10 +221,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const broadcastTenthsSetting = (showTenths) => {
+        localStorage.setItem('showTenths', showTenths ? 'true' : 'false');
         window.__showTenths = showTenths;
         window.dispatchEvent(new CustomEvent('tenths-toggle', { detail: { showTenths } }));
     };
 
+    const savedShowTenths = localStorage.getItem('showTenths');
+    if (savedShowTenths === 'true' || savedShowTenths === 'false') {
+        showTenthsCheckbox.checked = savedShowTenths === 'true';
+    }
     broadcastTenthsSetting(showTenthsCheckbox.checked);
     showTenthsCheckbox.addEventListener('change', (event) => {
         broadcastTenthsSetting(event.target.checked);
