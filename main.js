@@ -115,8 +115,8 @@ class DigitalClock extends HTMLElement {
         const dateMap = partsToMap(dateParts);
         const tenths = String(Math.floor(now.getMilliseconds() / 100));
         const timeText = this.showTenths
-            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${tenths}H`
-            : `${timeMap.hour}:${timeMap.minute}:${timeMap.second}H`;
+            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${tenths}`
+            : `${timeMap.hour}:${timeMap.minute}:${timeMap.second}`;
         const dateText = `${dateMap.year}년 ${dateMap.month}월 ${dateMap.day}일 (${dateMap.weekday})`;
 
         this.shadowRoot.querySelector('.digital-clock').textContent = timeText;
@@ -184,9 +184,9 @@ document.addEventListener('DOMContentLoaded', () => {
         modalCityList.innerHTML = '';
         standardTimeCities.forEach(({ timezone, city, offset }) => {
             const button = document.createElement('button');
-            button.textContent = `${city} (${formatOffset(offset)})`;
+            button.textContent = `${city} (${formatOffset(offset)}) (시간H)`;
             button.addEventListener('click', () => {
-                createClock(timezone, `${city} (${formatOffset(offset)})`);
+                createClock(timezone, `${city} (${formatOffset(offset)}) (시간H)`);
                 cityModal.style.display = 'none';
             });
             modalCityList.appendChild(button);
