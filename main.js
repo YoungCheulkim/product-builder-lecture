@@ -7,10 +7,10 @@ class DigitalClock extends HTMLElement {
             this.updateClock(event.detail.now);
         }
     };
-    this.showHundredths = true;
-    this.handleHundredthsToggle = (event) => {
-        if (event.detail && typeof event.detail.showHundredths === 'boolean') {
-            this.showHundredths = event.detail.showHundredths;
+    this.showTenths = true;
+    this.handleTenthsToggle = (event) => {
+        if (event.detail && typeof event.detail.showTenths === 'boolean') {
+            this.showTenths = event.detail.showTenths;
         }
     };
   }
@@ -92,12 +92,12 @@ class DigitalClock extends HTMLElement {
     }
 
     window.addEventListener('clock-tick', this.handleTick);
-    window.addEventListener('hundredths-toggle', this.handleHundredthsToggle);
+    window.addEventListener('tenths-toggle', this.handleTenthsToggle);
   }
 
   disconnectedCallback() {
     window.removeEventListener('clock-tick', this.handleTick);
-    window.removeEventListener('hundredths-toggle', this.handleHundredthsToggle);
+    window.removeEventListener('tenths-toggle', this.handleTenthsToggle);
   }
 
   updateClock(now) {
@@ -110,9 +110,9 @@ class DigitalClock extends HTMLElement {
         }, {});
         const timeMap = partsToMap(timeParts);
         const dateMap = partsToMap(dateParts);
-        const hundredths = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
-        const timeText = this.showHundredths
-            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${hundredths}`
+        const tenths = String(Math.floor(now.getMilliseconds() / 100));
+        const timeText = this.showTenths
+            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${tenths}`
             : `${timeMap.hour}:${timeMap.minute}:${timeMap.second}`;
         const dateText = `${dateMap.year}년 ${dateMap.month}월 ${dateMap.day}일 (${dateMap.weekday})`;
 
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const TICK_INTERVAL_MS = 10;
     const clocksContainer = document.getElementById('clocks-container');
     const addWorldClockButton = document.getElementById('add-world-clock');
-    const showHundredthsCheckbox = document.getElementById('show-hundredths');
+    const showTenthsCheckbox = document.getElementById('show-tenths');
     const cityModal = document.getElementById('city-modal');
     const modalCityList = document.getElementById('modal-city-list');
     const closeButton = document.querySelector('.close-button');
@@ -216,13 +216,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const broadcastHundredthsSetting = (showHundredths) => {
-        window.dispatchEvent(new CustomEvent('hundredths-toggle', { detail: { showHundredths } }));
+    const broadcastTenthsSetting = (showTenths) => {
+        window.dispatchEvent(new CustomEvent('tenths-toggle', { detail: { showTenths } }));
     };
 
-    broadcastHundredthsSetting(showHundredthsCheckbox.checked);
-    showHundredthsCheckbox.addEventListener('change', (event) => {
-        broadcastHundredthsSetting(event.target.checked);
+    broadcastTenthsSetting(showTenthsCheckbox.checked);
+    showTenthsCheckbox.addEventListener('change', (event) => {
+        broadcastTenthsSetting(event.target.checked);
     });
 
     const tick = () => {
