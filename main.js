@@ -102,53 +102,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const cityModal = document.getElementById('city-modal');
     const modalCityList = document.getElementById('modal-city-list');
     const closeButton = document.querySelector('.close-button');
-    let timezones = [];
+    const standardTimeCities = [
+        { timezone: 'Pacific/Pago_Pago', city: '파고파고', offset: -11 },
+        { timezone: 'Pacific/Honolulu', city: '호놀룰루', offset: -10 },
+        { timezone: 'America/Anchorage', city: '앵커리지', offset: -9 },
+        { timezone: 'America/Los_Angeles', city: '로스앤젤레스', offset: -8 },
+        { timezone: 'America/Denver', city: '덴버', offset: -7 },
+        { timezone: 'America/Chicago', city: '시카고', offset: -6 },
+        { timezone: 'America/New_York', city: '뉴욕', offset: -5 },
+        { timezone: 'America/Halifax', city: '핼리팩스', offset: -4 },
+        { timezone: 'America/Sao_Paulo', city: '상파울루', offset: -3 },
+        { timezone: 'America/Noronha', city: '페르난두데노로냐', offset: -2 },
+        { timezone: 'Atlantic/Azores', city: '아조레스', offset: -1 },
+        { timezone: 'Europe/London', city: '런던', offset: 0 },
+        { timezone: 'Europe/Paris', city: '파리', offset: 1 },
+        { timezone: 'Europe/Athens', city: '아테네', offset: 2 },
+        { timezone: 'Europe/Moscow', city: '모스크바', offset: 3 },
+        { timezone: 'Asia/Dubai', city: '두바이', offset: 4 },
+        { timezone: 'Asia/Karachi', city: '카라치', offset: 5 },
+        { timezone: 'Asia/Dhaka', city: '다카', offset: 6 },
+        { timezone: 'Asia/Bangkok', city: '방콕', offset: 7 },
+        { timezone: 'Asia/Shanghai', city: '상하이', offset: 8 },
+        { timezone: 'Asia/Seoul', city: '서울', offset: 9 },
+        { timezone: 'Australia/Sydney', city: '시드니', offset: 10 },
+        { timezone: 'Pacific/Noumea', city: '누메아', offset: 11 },
+        { timezone: 'Pacific/Auckland', city: '오클랜드', offset: 12 },
+    ];
 
-    async function fetchTimezones() {
-        if (timezones.length === 0) {
-            try {
-                const response = await fetch('https://worldtimeapi.org/api/timezone');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                timezones = await response.json();
-                return true;
-            } catch (error) {
-                console.error('Error fetching timezones:', error);
-                return false;
-            }
-        }
-        return true;
+    function formatOffset(offset) {
+        if (offset === 0) return '±0';
+        return `${offset > 0 ? '+' : ''}${offset}`;
     }
 
-    function displayRegions() {
-        const regions = [...new Set(timezones.map(tz => tz.split('/')[0]))].filter(r => r !== 'Etc');
+    function displayCityList() {
         modalCityList.innerHTML = '';
-        const backButton = document.createElement('button');
-        backButton.textContent = '지역 선택';
-        backButton.disabled = true;
-        modalCityList.appendChild(backButton);
-
-        regions.forEach(region => {
+        standardTimeCities.forEach(({ timezone, city, offset }) => {
             const button = document.createElement('button');
-            button.textContent = region;
-            button.addEventListener('click', () => displayCities(region));
-            modalCityList.appendChild(button);
-        });
-    }
-
-    function displayCities(region) {
-        const cities = timezones.filter(tz => tz.startsWith(region + '/'));
-        modalCityList.innerHTML = '';
-        const backButton = document.createElement('button');
-        backButton.textContent = '← 뒤로';
-        backButton.addEventListener('click', displayRegions);
-        modalCityList.appendChild(backButton);
-
-        cities.forEach(timezone => {
-            const city = timezone.split('/').slice(-1)[0].replace(/_/g, ' ');
-            const button = document.createElement('button');
-            button.textContent = city;
+            button.textContent = `${city} (${formatOffset(offset)})`;
             button.addEventListener('click', () => {
-                createClock(timezone, city);
+                createClock(timezone, `${city} (${formatOffset(offset)})`);
                 cityModal.style.display = 'none';
             });
             modalCityList.appendChild(button);
@@ -166,34 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
         clocksContainer.appendChild(clock);
     }
 
-    addWorldClockButton.addEventListener('click', async () => {
+    addWorldClockButton.addEventListener('click', () => {
         cityModal.style.display = 'block';
-        modalCityList.innerHTML = '시간대 목록을 불러오는 중...';
-
-        const ok = await fetchTimezones();
-        if (ok && timezones.length > 0) {
-            displayRegions();
-            return;
-        }
-
-        modalCityList.innerHTML = '';
-        const message = document.createElement('div');
-        message.textContent = '시간대 목록을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.';
-        const retryButton = document.createElement('button');
-        retryButton.textContent = '다시 시도';
-        retryButton.addEventListener('click', async () => {
-            modalCityList.innerHTML = '시간대 목록을 불러오는 중...';
-            const retryOk = await fetchTimezones();
-            if (retryOk && timezones.length > 0) {
-                displayRegions();
-                return;
-            }
-            modalCityList.innerHTML = '';
-            modalCityList.appendChild(message);
-            modalCityList.appendChild(retryButton);
-        });
-        modalCityList.appendChild(message);
-        modalCityList.appendChild(retryButton);
+        displayCityList();
     });
 
     closeButton.addEventListener('click', () => {
