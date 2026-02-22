@@ -7,6 +7,12 @@ class DigitalClock extends HTMLElement {
             this.updateClock(event.detail.now);
         }
     };
+    this.showHundredths = true;
+    this.handleHundredthsToggle = (event) => {
+        if (event.detail && typeof event.detail.showHundredths === 'boolean') {
+            this.showHundredths = event.detail.showHundredths;
+        }
+    };
   }
 
   connectedCallback() {
@@ -86,10 +92,12 @@ class DigitalClock extends HTMLElement {
     }
 
     window.addEventListener('clock-tick', this.handleTick);
+    window.addEventListener('hundredths-toggle', this.handleHundredthsToggle);
   }
 
   disconnectedCallback() {
     window.removeEventListener('clock-tick', this.handleTick);
+    window.removeEventListener('hundredths-toggle', this.handleHundredthsToggle);
   }
 
   updateClock(now) {
@@ -103,7 +111,9 @@ class DigitalClock extends HTMLElement {
         const timeMap = partsToMap(timeParts);
         const dateMap = partsToMap(dateParts);
         const hundredths = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
-        const timeText = `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${hundredths}`;
+        const timeText = this.showHundredths
+            ? `${timeMap.hour}:${timeMap.minute}:${timeMap.second}.${hundredths}`
+            : `${timeMap.hour}:${timeMap.minute}:${timeMap.second}`;
         const dateText = `${dateMap.year}년 ${dateMap.month}월 ${dateMap.day}일 (${dateMap.weekday})`;
 
         this.shadowRoot.querySelector('.digital-clock').textContent = timeText;
@@ -131,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const TICK_INTERVAL_MS = 10;
     const clocksContainer = document.getElementById('clocks-container');
     const addWorldClockButton = document.getElementById('add-world-clock');
+    const showHundredthsCheckbox = document.getElementById('show-hundredths');
     const cityModal = document.getElementById('city-modal');
     const modalCityList = document.getElementById('modal-city-list');
     const closeButton = document.querySelector('.close-button');
@@ -203,6 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target == cityModal) {
             cityModal.style.display = 'none';
         }
+    });
+
+    const broadcastHundredthsSetting = (showHundredths) => {
+        window.dispatchEvent(new CustomEvent('hundredths-toggle', { detail: { showHundredths } }));
+    };
+
+    broadcastHundredthsSetting(showHundredthsCheckbox.checked);
+    showHundredthsCheckbox.addEventListener('change', (event) => {
+        broadcastHundredthsSetting(event.target.checked);
     });
 
     const tick = () => {
