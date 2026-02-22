@@ -24,50 +24,24 @@ class DigitalClock extends HTMLElement {
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             transition: background-color 0.5s, color 0.5s;
         }
-
-        .light-mode {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-
-        .dark-mode {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-        }
-
-        .city-label {
-            text-align: center;
-            font-size: 1.8em;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .date-display {
-            text-align: center;
-            font-size: 1.2em;
-            margin-bottom: 15px;
-        }
-
-        .digital-clock {
-            text-align: center;
-            font-size: 3em;
-            font-family: 'monospace';
-        }
-
+        .light-mode { background-color: #f0f0f0; color: #333; }
+        .dark-mode { background-color: #2c3e50; color: #ecf0f1; }
+        .city-label { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; }
+        .date-display { font-size: 1.2em; margin-bottom: 15px; }
+        .digital-clock { font-size: 3em; font-family: 'monospace'; }
         .delete-button {
             position: absolute;
             top: 10px;
             right: 10px;
             background: transparent;
             border: none;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
             color: #aaa;
+            transition: color 0.3s;
         }
-
-        .delete-button:hover {
-            color: #333;
-        }
+        .delete-button:hover { color: #333; }
+        .dark-mode .delete-button:hover { color: #fff; }
       </style>
       <div class="clock-container">
           <button class="delete-button">&times;</button>
@@ -78,11 +52,9 @@ class DigitalClock extends HTMLElement {
     `;
 
     this.shadowRoot.appendChild(template.content.cloneNode(true));
-    this.digitalClock = this.shadowRoot.querySelector('.digital-clock');
-    this.dateDisplay = this.shadowRoot.querySelector('.date-display');
-    this.clockContainer = this.shadowRoot.querySelector('.clock-container');
 
-    this.shadowRoot.querySelector('.delete-button').addEventListener('click', () => {
+    this.shadowRoot.querySelector('.delete-button').addEventListener('click', (e) => {
+        e.stopPropagation();
         this.remove();
     });
 
@@ -95,94 +67,118 @@ class DigitalClock extends HTMLElement {
   }
 
   updateClock(timezone) {
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const date = String(now.getDate()).padStart(2, '0');
-    const day = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
+    try {
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
+        const hours = now.getHours();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        const day = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
 
-    const digitalHours = String(hours).padStart(2, '0');
-    const digitalMinutes = String(minutes).padStart(2, '0');
-    const digitalSeconds = String(seconds).padStart(2, '0');
-    
-    this.digitalClock.textContent = `${digitalHours}:${digitalMinutes}:${digitalSeconds}`;
-    this.dateDisplay.textContent = `${year}년 ${month}월 ${date}일 (${day})`;
+        this.shadowRoot.querySelector('.digital-clock').textContent = now.toTimeString().split(' ')[0];
+        this.shadowRoot.querySelector('.date-display').textContent = `${year}년 ${month}월 ${date}일 (${day})`;
 
-    if (hours >= 6 && hours < 18) {
-        this.clockContainer.classList.remove('dark-mode');
-        this.clockContainer.classList.add('light-mode');
-    } else {
-        this.clockContainer.classList.remove('light-mode');
-        this.clockContainer.classList.add('dark-mode');
+        const clockContainer = this.shadowRoot.querySelector('.clock-container');
+        if (hours >= 6 && hours < 18) {
+            clockContainer.classList.remove('dark-mode');
+            clockContainer.classList.add('light-mode');
+        } else {
+            clockContainer.classList.remove('light-mode');
+            clockContainer.classList.add('dark-mode');
+        }
+    } catch (error) {
+        console.error(`Invalid timezone: ${timezone}`, error);
+        this.shadowRoot.querySelector('.digital-clock').textContent = 'Invalid Timezone';
+        clearInterval(this.interval);
     }
   }
 }
 
 customElements.define('digital-clock', DigitalClock);
 
-const clocksContainer = document.getElementById('clocks-container');
-const addWorldClockButton = document.getElementById('add-world-clock');
-const cityModal = document.getElementById('city-modal');
-const modalCityList = document.getElementById('modal-city-list');
-const closeButton = document.querySelector('.close-button');
-let timezones = [];
+document.addEventListener('DOMContentLoaded', () => {
+    const clocksContainer = document.getElementById('clocks-container');
+    const addWorldClockButton = document.getElementById('add-world-clock');
+    const cityModal = document.getElementById('city-modal');
+    const modalCityList = document.getElementById('modal-city-list');
+    const closeButton = document.querySelector('.close-button');
+    let timezones = [];
 
-addWorldClockButton.addEventListener('click', async () => {
-  if (timezones.length === 0) {
-    try {
-      const response = await fetch('https://worldtimeapi.org/api/timezone');
-      timezones = await response.json();
-    } catch (error) {
-      console.error('Error fetching timezones:', error);
-      return;
+    async function fetchTimezones() {
+        if (timezones.length === 0) {
+            try {
+                const response = await fetch('https://worldtimeapi.org/api/timezone');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                timezones = await response.json();
+            } catch (error) {
+                console.error('Error fetching timezones:', error);
+                modalCityList.innerHTML = '시간대 목록을 불러오는 데 실패했습니다.';
+            }
+        }
     }
-  }
-  displayRegions();
-  cityModal.style.display = 'block';
-});
 
-closeButton.addEventListener('click', () => {
-  cityModal.style.display = 'none';
-});
+    function displayRegions() {
+        const regions = [...new Set(timezones.map(tz => tz.split('/')[0]))].filter(r => r !== 'Etc');
+        modalCityList.innerHTML = '';
+        const backButton = document.createElement('button');
+        backButton.textContent = '지역 선택';
+        backButton.disabled = true;
+        modalCityList.appendChild(backButton);
 
-window.addEventListener('click', (event) => {
-  if (event.target == cityModal) {
-    cityModal.style.display = 'none';
-  }
-});
-
-function displayRegions() {
-    const regions = [...new Set(timezones.map(tz => tz.split('/')[0]))];
-    modalCityList.innerHTML = '';
-    regions.forEach(region => {
-        const button = document.createElement('button');
-        button.textContent = region;
-        button.addEventListener('click', () => displayCities(region));
-        modalCityList.appendChild(button);
-    });
-}
-
-function displayCities(region) {
-    const cities = timezones.filter(tz => tz.startsWith(region + '/'));
-    modalCityList.innerHTML = '';
-    cities.forEach(timezone => {
-        const city = timezone.split('/').slice(1).join('/').replace(/_/g, ' ');
-        const button = document.createElement('button');
-        button.textContent = city;
-        button.addEventListener('click', () => {
-          createClock(timezone, city);
-          cityModal.style.display = 'none';
+        regions.forEach(region => {
+            const button = document.createElement('button');
+            button.textContent = region;
+            button.addEventListener('click', () => displayCities(region));
+            modalCityList.appendChild(button);
         });
-        modalCityList.appendChild(button);
-    });
-}
+    }
 
-function createClock(timezone, city) {
-  const clock = document.createElement('digital-clock');
-  clock.setAttribute('timezone', timezone);
-  clock.setAttribute('city', city);
-  clocksContainer.appendChild(clock);
-}
+    function displayCities(region) {
+        const cities = timezones.filter(tz => tz.startsWith(region + '/'));
+        modalCityList.innerHTML = '';
+        const backButton = document.createElement('button');
+        backButton.textContent = '← 뒤로';
+        backButton.addEventListener('click', displayRegions);
+        modalCityList.appendChild(backButton);
+
+        cities.forEach(timezone => {
+            const city = timezone.split('/').slice(-1)[0].replace(/_/g, ' ');
+            const button = document.createElement('button');
+            button.textContent = city;
+            button.addEventListener('click', () => {
+                createClock(timezone, city);
+                cityModal.style.display = 'none';
+            });
+            modalCityList.appendChild(button);
+        });
+    }
+
+    function createClock(timezone, city) {
+        if (document.querySelector(`digital-clock[timezone="${timezone}"]`)) {
+            alert('이미 추가된 도시입니다.');
+            return;
+        }
+        const clock = document.createElement('digital-clock');
+        clock.setAttribute('timezone', timezone);
+        clock.setAttribute('city', city);
+        clocksContainer.appendChild(clock);
+    }
+
+    addWorldClockButton.addEventListener('click', async () => {
+        await fetchTimezones();
+        if (timezones.length > 0) {
+            displayRegions();
+            cityModal.style.display = 'block';
+        }
+    });
+
+    closeButton.addEventListener('click', () => {
+        cityModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == cityModal) {
+            cityModal.style.display = 'none';
+        }
+    });
+});
