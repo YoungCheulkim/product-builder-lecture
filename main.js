@@ -1,4 +1,4 @@
-class AnalogClock extends HTMLElement {
+class DigitalClock extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -13,128 +13,58 @@ class AnalogClock extends HTMLElement {
       <style>
         .clock-container {
             position: relative;
-            width: 200px;
-            height: 250px; /* Increased height for digital clock */
+            width: 350px; /* Increased width for date */
+            height: 200px; /* Increased height for date */
             margin: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: background-color 0.5s, color 0.5s;
         }
 
-        .analog-clock {
-            position: relative;
-            width: 200px;
-            height: 200px;
+        .light-mode {
+            background-color: #f0f0f0;
+            color: #333;
         }
 
-        .clock-face {
-            width: 100%;
-            height: 100%;
-            border: 6px solid #333;
-            background: #fff;
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2), 0 0 0 5px #eee;
-
-        }
-
-        .center-dot {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 8px;
-            height: 8px;
-            background: #333;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-        }
-
-        .hand {
-            position: absolute;
-            width: 50%;
-            height: 2px;
-            background: #333;
-            top: 50%;
-            transform-origin: 100%;
-            transform: rotate(90deg);
-            transition: transform 0.05s cubic-bezier(0.4, 2.3, 0.6, 1);
-        }
-
-        .hour-hand {
-            height: 5px;
-            width: 30%;
-            left: 20%;
-            border-radius: 2px;
-        }
-
-        .minute-hand {
-            height: 3px;
-            width: 40%;
-            left: 10%;
-            border-radius: 2px;
-        }
-        
-        .second-hand {
-            height: 1px;
-            background: red;
-            width: 45%;
-            left: 5%;
+        .dark-mode {
+            background-color: #2c3e50;
+            color: #ecf0f1;
         }
 
         .city-label {
             text-align: center;
-            margin-top: 15px;
-            font-size: 1.2em;
+            font-size: 1.8em;
             font-weight: bold;
+            margin-bottom: 10px;
         }
-        
+
+        .date-display {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
         .digital-clock {
             text-align: center;
-            font-size: 1.5em;
-            margin-top: 10px;
+            font-size: 3em;
             font-family: 'monospace';
-        }
-        
-        .number {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            font-size: 1.4em;
-            font-weight: bold;
-            padding: 5px;
         }
       </style>
       <div class="clock-container">
-          <div class="analog-clock">
-            <div class="clock-face">
-                <div class="center-dot"></div>
-                <div class="hand hour-hand"></div>
-                <div class="hand minute-hand"></div>
-                <div class="hand second-hand"></div>
-            </div>
-          </div>
-          <div class="digital-clock"></div>
           <div class="city-label">${city}</div>
+          <div class="date-display"></div>
+          <div class="digital-clock"></div>
       </div>
     `;
 
     this.shadowRoot.appendChild(template.content.cloneNode(true));
-
-    const clockFace = this.shadowRoot.querySelector('.clock-face');
-    for (let i = 1; i <= 12; i++) {
-        const number = document.createElement('div');
-        number.classList.add('number');
-        number.style.transform = `rotate(${i * 30}deg)`;
-        number.innerHTML = `<span style="display:inline-block; transform: rotate(${-i * 30}deg);">${i}</span>`;
-        clockFace.appendChild(number);
-    }
-
-    this.hourHand = this.shadowRoot.querySelector('.hour-hand');
-    this.minuteHand = this.shadowRoot.querySelector('.minute-hand');
-    this.secondHand = this.shadowRoot.querySelector('.second-hand');
     this.digitalClock = this.shadowRoot.querySelector('.digital-clock');
+    this.dateDisplay = this.shadowRoot.querySelector('.date-display');
+    this.clockContainer = this.shadowRoot.querySelector('.clock-container');
 
     this.updateClock(timezone);
     this.interval = setInterval(() => this.updateClock(timezone), 1000);
@@ -146,28 +76,33 @@ class AnalogClock extends HTMLElement {
 
   updateClock(timezone) {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-    const seconds = now.getSeconds();
-    const minutes = now.getMinutes();
     const hours = now.getHours();
-
-    const secondsDegrees = ((seconds / 60) * 360) + 90;
-    const minutesDegrees = ((minutes / 60) * 360) + ((seconds/60)*6) + 90;
-    const hoursDegrees = ((hours / 12) * 360) + ((minutes/60)*30) + 90;
-
-    this.secondHand.style.transform = `rotate(${secondsDegrees}deg)`;
-    this.minuteHand.style.transform = `rotate(${minutesDegrees}deg)`;
-    this.hourHand.style.transform = `rotate(${hoursDegrees}deg)`;
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const date = String(now.getDate()).padStart(2, '0');
+    const day = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
 
     const digitalHours = String(hours).padStart(2, '0');
     const digitalMinutes = String(minutes).padStart(2, '0');
     const digitalSeconds = String(seconds).padStart(2, '0');
+    
     this.digitalClock.textContent = `${digitalHours}:${digitalMinutes}:${digitalSeconds}`;
+    this.dateDisplay.textContent = `${year}년 ${month}월 ${date}일 (${day})`;
 
+    // Day/Night Mode
+    if (hours >= 6 && hours < 18) {
+        this.clockContainer.classList.remove('dark-mode');
+        this.clockContainer.classList.add('light-mode');
+    } else {
+        this.clockContainer.classList.remove('light-mode');
+        this.clockContainer.classList.add('dark-mode');
+    }
   }
 }
 
-customElements.define('world-clock', AnalogClock);
-
+customElements.define('digital-clock', DigitalClock);
 
 const clocksContainer = document.getElementById('clocks-container');
 const addWorldClockButton = document.getElementById('add-world-clock');
@@ -218,7 +153,7 @@ function displayCities(region) {
 }
 
 function createClock(timezone, city) {
-  const clock = document.createElement('world-clock');
+  const clock = document.createElement('digital-clock');
   clock.setAttribute('timezone', timezone);
   clock.setAttribute('city', city);
   clocksContainer.appendChild(clock);
